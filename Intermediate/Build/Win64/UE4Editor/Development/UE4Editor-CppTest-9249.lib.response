@@ -1,0 +1,18 @@
+/NOLOGO
+/errorReport:prompt
+/MACHINE:x64
+/SUBSYSTEM:WINDOWS
+/DEF
+/NAME:"UE4Editor-CppTest-9249.dll"
+/IGNORE:4221
+/NODEFAULTLIB
+"C:\Program Files\Epic Games\UE_4.16\Engine\Intermediate\Build\Win64\UE4Editor\Development\Engine\SharedPCH.Engine.h.obj"
+"D:\Kyle\Documents\Unreal Projects\CppTest\Intermediate\Build\Win64\UE4Editor\Development\CppTest\CppTest.cpp.obj"
+"D:\Kyle\Documents\Unreal Projects\CppTest\Intermediate\Build\Win64\UE4Editor\Development\CppTest\CppTestGameModeBase.cpp.obj"
+"D:\Kyle\Documents\Unreal Projects\CppTest\Intermediate\Build\Win64\UE4Editor\Development\CppTest\CubeActor.cpp.obj"
+"D:\Kyle\Documents\Unreal Projects\CppTest\Intermediate\Build\Win64\UE4Editor\Development\CppTest\GenActor.cpp.obj"
+"D:\Kyle\Documents\Unreal Projects\CppTest\Intermediate\Build\Win64\UE4Editor\Development\CppTest\MyActor.cpp.obj"
+"D:\Kyle\Documents\Unreal Projects\CppTest\Intermediate\Build\Win64\UE4Editor\Development\CppTest\CppTest.generated.cpp.obj"
+"C:\Program Files\Epic Games\UE_4.16\Engine\Intermediate\Build\Win64\UE4Editor\Development\CppTest\PCLaunch.rc.res"
+"C:\Program Files\Epic Games\UE_4.16\Engine\Intermediate\Build\Win64\UE4Editor\Development\ModuleVersionResource.rc.inl.res"
+/OUT:"D:\Kyle\Documents\Unreal Projects\CppTest\Intermediate\Build\Win64\UE4Editor\Development\UE4Editor-CppTest-9249.lib"
