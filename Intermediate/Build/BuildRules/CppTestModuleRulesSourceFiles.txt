@@ -1,3 +1,0 @@
-D:\Kyle\Documents\Unreal Projects\CppTest\Source\CppTest\CppTest.Build.cs
-D:\Kyle\Documents\Unreal Projects\CppTest\Source\CppTest.Target.cs
-D:\Kyle\Documents\Unreal Projects\CppTest\Source\CppTestEditor.Target.cs
