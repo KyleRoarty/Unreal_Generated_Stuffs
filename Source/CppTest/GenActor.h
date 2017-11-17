@@ -21,8 +21,7 @@ public:
 		UProceduralMeshComponent * mesh;
 	UPROPERTY(EditAnywhere)
 		UMaterial *MyMaterial;
-	UPROPERTY()
-		FVector int_point;
+
 	UPROPERTY()
 		FVector actor_point;
 	UPROPERTY()
@@ -41,7 +40,7 @@ protected:
 	template <typename return_type, class ret_type, class mem_type>
 	TArray<return_type> PointArray(mem_type Vertices, ret_type Member);
 	float GetArea(TArray<FVector> points);
-	TArray<int>GetSplitIndices(float ref, TArray<float>l_half, TArray<float>r_half);
+	TArray<int>GetSplitIndices(TArray<TArray<FVector>> many_l_verts, TArray<TArray<FVector>> many_r_verts);
 	TArray<TArray<FVector>> GetSplit_Tri(TArray<FVector> positions, FVector wep_start, FVector wep_end, FVector wep_width, FVector wep_height, FVector block_pos);
 
 	TArray<int32> GetTriangles(int32 num_vertices);

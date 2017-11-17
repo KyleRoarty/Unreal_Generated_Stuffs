@@ -62,7 +62,6 @@ void AGenActor::CreateTriangle(TArray<FVector> vertices, FVector2D center)
 	mesh->CreateMeshSection_LinearColor(0, vertices, Triangles, normals, UV0, vertexColors, tangents, true);
 	mesh->ContainsPhysicsTriMeshData(true);
 	mesh->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Overlap);
-
 }
 
 template<typename return_type, class ret_type, class mem_type>
@@ -80,11 +79,8 @@ inline TArray<return_type> AGenActor::PointArray(mem_type Vertices, ret_type Mem
 void AGenActor::OnComponentBeginOverlap(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
 	FProcMeshSection *mesh_sect = this->mesh->GetProcMeshSection(0);
-	FVector actor_location, actor_bounds;
-	OtherActor->GetActorBounds(false, actor_location, actor_bounds);
 	actor_point = OtherActor->GetActorLocation();
 	actor_rvec = GetWorld()->GetFirstPlayerController()->GetActorRightVector();
-	int_point = SweepResult.Location;
 
 	TArray<FVector2D> updated_uv = GetUV(PointArray<FVector>(mesh_sect->ProcVertexBuffer, &FProcMeshVertex::Position),
 		FVector2D(.1875, .1875), FVector2D(.0625, .0625), FVector2D(50, 50));
@@ -99,28 +95,27 @@ void AGenActor::OnOverlapEnd(class UPrimitiveComponent * OverlappedComp, class A
 	FProcMeshSection *mesh_sect = this->mesh->GetProcMeshSection(0);
 	FVector curr_pos = OtherActor->GetActorLocation();
 	FVector block_pos = this->GetActorLocation();
+	
 	FVector w_height = FVector(0, 0, 35);
-	float width = 5;
+
 	// Right side width vector oriented to the actor rvec
+	float width = 5;
 	FVector r_width_ori = width*actor_rvec;
 
 	TArray<TArray<FVector>> updated_position_r = GetSplit_Tri(PointArray<FVector>(mesh_sect->ProcVertexBuffer, &FProcMeshVertex::Position), actor_point, curr_pos, r_width_ori, w_height, block_pos);
 	TArray<TArray<FVector>> updated_position_l = GetSplit_Tri(PointArray<FVector>(mesh_sect->ProcVertexBuffer, &FProcMeshVertex::Position), actor_point, curr_pos, -r_width_ori, w_height, block_pos);
-
-	TArray<float> l_areas = { GetArea(updated_position_l[0]), GetArea(updated_position_l[1]) };
-	TArray<float> r_areas = { GetArea(updated_position_r[0]), GetArea(updated_position_r[1]) };
-	TArray<int> split_inds = GetSplitIndices(GetArea(PointArray<FVector>(mesh_sect->ProcVertexBuffer, &FProcMeshVertex::Position)), l_areas, r_areas);
+	TArray<int> split_inds = GetSplitIndices(updated_position_l, updated_position_r);
 
 	if (split_inds[0] != -1 && split_inds[1] != -1) {
 		if (updated_position_l.IsValidIndex(split_inds[0])) {
 			AGenActor *other_half = GetWorld()->SpawnActorDeferred<AGenActor>(AGenActor::StaticClass(), FTransform(FVector(0, 0, 0)));
 			other_half->verts = updated_position_l[split_inds[0]];
-			other_half->FinishSpawning(FTransform(block_pos + FVector(0, 0, 0)));
+			other_half->FinishSpawning(FTransform(block_pos));
 		}
 		if (updated_position_r.IsValidIndex(split_inds[1])) {
 			AGenActor *other_half = GetWorld()->SpawnActorDeferred<AGenActor>(AGenActor::StaticClass(), FTransform(FVector(0, 0, 0)));
 			other_half->verts = updated_position_r[split_inds[1]];
-			other_half->FinishSpawning(FTransform(block_pos + FVector(0, 0, 0)));
+			other_half->FinishSpawning(FTransform(block_pos));
 		}
 		this->Destroy();
 	}
@@ -237,31 +232,36 @@ float AGenActor::GetArea(TArray<FVector> points)
 	return area;
 }
 
-TArray<int> AGenActor::GetSplitIndices(float ref, TArray<float> l_half, TArray<float> r_half)
+TArray<int> AGenActor::GetSplitIndices(TArray<TArray<FVector>> many_l_verts, TArray<TArray<FVector>> many_r_verts)
 {
-	TArray<int> ind = { -1, -1 };
-	float max_under_ref = 0;
+	bool r_true;
+	//This should be multithreaded
+	for (int i = 0; i < many_l_verts.Num(); i++) {
+		TArray<FVector> l_verts = many_l_verts[i];
+		for (int j = 0; j < many_r_verts.Num(); j++) {
+			TArray<FVector> r_verts = many_r_verts[j];
+			r_true = true;
+			for (int k = 0; k < l_verts.Num(); k++) {
+				FVector a, b;
+				a = l_verts[k];
+				b = l_verts[(k+1) % l_verts.Num()];
 
-	if (l_half.Num() < 2) {
-		l_half.Emplace(0);
-	}
-	else if (l_half.Num() > 2) {
-		//??? Return -1?
-	}
-	if (r_half.Num() < 2) {
-		r_half.Emplace(0);
-	}
-	else if (r_half.Num() > 2) {
-		//??? Return -1?
-	}
+				for (int l = 0; l < r_verts.Num(); l++) {
+					UE_LOG(LogTemp, Warning, TEXT("%s, %s"), *r_verts[l].ToString(), *FMath::ClosestPointOnSegment(r_verts[l], a, b).ToString());
+					if (r_verts[l] == FMath::ClosestPointOnSegment(r_verts[l], a, b)) {
+						r_true = false;
+						break;
+					}
+				}
 
-	for (int i = 0; i < l_half.Num(); i++) {
-		for (int j = 0; j < r_half.Num(); j++) {
-			if (l_half[i] + r_half[j] < ref && l_half[i] + r_half[j] > max_under_ref) {
-				max_under_ref = l_half[i] + r_half[j];
-				ind = { i, j };
+				if (!r_true) {
+					break;
+				}
+			}
+			if (r_true) {
+				return { i, j };
 			}
 		}
 	}
-	return ind;
+	return { -1, -1 };
 }
