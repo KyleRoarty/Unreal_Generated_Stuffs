@@ -60,8 +60,6 @@ void AGenActor::CreateTriangle(TArray<FVector> vertices, FVector2D center)
 	TArray<FLinearColor> vertexColors = GetColors(len);
 
 	mesh->CreateMeshSection_LinearColor(0, vertices, Triangles, normals, UV0, vertexColors, tangents, true);
-	//mesh->SetMobility(EComponentMobility::Movable);
-	// Enable collision data
 	mesh->ContainsPhysicsTriMeshData(true);
 	mesh->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Overlap);
 
@@ -101,17 +99,16 @@ void AGenActor::OnOverlapEnd(class UPrimitiveComponent * OverlappedComp, class A
 	FProcMeshSection *mesh_sect = this->mesh->GetProcMeshSection(0);
 	FVector curr_pos = OtherActor->GetActorLocation();
 	FVector block_pos = this->GetActorLocation();
-	FVector offset = FVector(0, 0, 35);
-	float dist = 20;
+	FVector w_height = FVector(0, 0, 35);
+	float width = 5;
+	// Right side width vector oriented to the actor rvec
+	FVector r_width_ori = width*actor_rvec;
 
-	TArray<TArray<FVector>> updated_position = GetSplit_Tri(PointArray<FVector>(mesh_sect->ProcVertexBuffer, &FProcMeshVertex::Position),
-		actor_point + offset - block_pos, actor_point - offset - block_pos, curr_pos + offset - block_pos, curr_pos - offset - block_pos);
-
-	TArray<TArray<FVector>> updated_position_l = GetSplit_Tri(PointArray<FVector>(mesh_sect->ProcVertexBuffer, &FProcMeshVertex::Position),
-		actor_point + offset + dist*-actor_rvec - block_pos, actor_point - offset + dist*-actor_rvec - block_pos, curr_pos + offset + dist*-actor_rvec - block_pos, curr_pos - offset + dist*-actor_rvec - block_pos);
+	TArray<TArray<FVector>> updated_position_r = GetSplit_Tri(PointArray<FVector>(mesh_sect->ProcVertexBuffer, &FProcMeshVertex::Position), actor_point, curr_pos, r_width_ori, w_height, block_pos);
+	TArray<TArray<FVector>> updated_position_l = GetSplit_Tri(PointArray<FVector>(mesh_sect->ProcVertexBuffer, &FProcMeshVertex::Position), actor_point, curr_pos, -r_width_ori, w_height, block_pos);
 
 	TArray<float> l_areas = { GetArea(updated_position_l[0]), GetArea(updated_position_l[1]) };
-	TArray<float> r_areas = { GetArea(updated_position[0]), GetArea(updated_position[1]) };
+	TArray<float> r_areas = { GetArea(updated_position_r[0]), GetArea(updated_position_r[1]) };
 	TArray<int> split_inds = GetSplitIndices(GetArea(PointArray<FVector>(mesh_sect->ProcVertexBuffer, &FProcMeshVertex::Position)), l_areas, r_areas);
 
 	if (split_inds[0] != -1 && split_inds[1] != -1) {
@@ -120,20 +117,28 @@ void AGenActor::OnOverlapEnd(class UPrimitiveComponent * OverlappedComp, class A
 			other_half->verts = updated_position_l[split_inds[0]];
 			other_half->FinishSpawning(FTransform(block_pos + FVector(0, 0, 0)));
 		}
-		if (updated_position.IsValidIndex(split_inds[1])) {
+		if (updated_position_r.IsValidIndex(split_inds[1])) {
 			AGenActor *other_half = GetWorld()->SpawnActorDeferred<AGenActor>(AGenActor::StaticClass(), FTransform(FVector(0, 0, 0)));
-			other_half->verts = updated_position[split_inds[1]];
+			other_half->verts = updated_position_r[split_inds[1]];
 			other_half->FinishSpawning(FTransform(block_pos + FVector(0, 0, 0)));
 		}
 		this->Destroy();
 	}
 }
-TArray<TArray<FVector>> AGenActor::GetSplit_Tri(TArray<FVector> positions, FVector a, FVector b, FVector c, FVector d)
+TArray<TArray<FVector>> AGenActor::GetSplit_Tri(TArray<FVector> positions, FVector wep_start, FVector wep_end, FVector wep_width, FVector wep_height, FVector block_pos)
 {
 	TArray<FVector> split_one, split_two;
 	FVector int_point;
 	FVector tri_normal;
 	bool add = true;
+	
+	//Top of weapon initially, bottom of weapon initially, top of weapon currently, bottom of weapon currently
+	FVector a, b, c, d;
+	//Subtracting block_pos normalizes
+	a = wep_start + wep_height + wep_width - block_pos;
+	b = wep_start - wep_height + wep_width - block_pos;
+	c = wep_end + wep_height + wep_width - block_pos;
+	d = wep_end - wep_height + wep_width - block_pos;
 
 	for (int i = 0; i < positions.Num(); i++) {
 		int j = (i + 1) % positions.Num();

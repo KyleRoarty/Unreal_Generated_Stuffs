@@ -42,7 +42,7 @@ protected:
 	TArray<return_type> PointArray(mem_type Vertices, ret_type Member);
 	float GetArea(TArray<FVector> points);
 	TArray<int>GetSplitIndices(float ref, TArray<float>l_half, TArray<float>r_half);
-	TArray<TArray<FVector>> GetSplit_Tri(TArray<FVector> positions, FVector a, FVector b, FVector c, FVector d);
+	TArray<TArray<FVector>> GetSplit_Tri(TArray<FVector> positions, FVector wep_start, FVector wep_end, FVector wep_width, FVector wep_height, FVector block_pos);
 
 	TArray<int32> GetTriangles(int32 num_vertices);
 	TArray<FVector2D> GetUV(TArray<FVector> positions, FVector2D center, FVector2D uv_range, FVector2D point_range);
