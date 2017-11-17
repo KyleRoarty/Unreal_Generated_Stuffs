@@ -14,7 +14,7 @@ AGenActor::AGenActor()
 	PrimaryActorTick.bCanEverTick = true;
 	mesh = CreateDefaultSubobject<UProceduralMeshComponent>(TEXT("GeneratedMesh"));
 	RootComponent = mesh;
-	
+
 	if (verts.Num() == 0) {
 		verts.Add(FVector(-50, -50, 0));
 		verts.Add(FVector(-50, 50, 0));
@@ -72,7 +72,7 @@ inline TArray<return_type> AGenActor::PointArray(mem_type Vertices, ret_type Mem
 	{
 		return_array.Add(vertex.*Member);
 	}
-	
+
 	return return_array;
 }
 
@@ -95,7 +95,7 @@ void AGenActor::OnOverlapEnd(class UPrimitiveComponent * OverlappedComp, class A
 	FProcMeshSection *mesh_sect = this->mesh->GetProcMeshSection(0);
 	FVector curr_pos = OtherActor->GetActorLocation();
 	FVector block_pos = this->GetActorLocation();
-	
+
 	FVector w_height = FVector(0, 0, 35);
 
 	// Right side width vector oriented to the actor rvec
@@ -126,7 +126,7 @@ TArray<TArray<FVector>> AGenActor::GetSplit_Tri(TArray<FVector> positions, FVect
 	FVector int_point;
 	FVector tri_normal;
 	bool add = true;
-	
+
 	//Top of weapon initially, bottom of weapon initially, top of weapon currently, bottom of weapon currently
 	FVector a, b, c, d;
 	//Subtracting block_pos normalizes
@@ -156,7 +156,7 @@ TArray<TArray<FVector>> AGenActor::GetSplit_Tri(TArray<FVector> positions, FVect
 			add = !add;
 		}
 	}
-	
+
 	if (add) {
 		return { split_one, split_two };
 	}
@@ -235,6 +235,15 @@ float AGenActor::GetArea(TArray<FVector> points)
 TArray<int> AGenActor::GetSplitIndices(TArray<TArray<FVector>> many_l_verts, TArray<TArray<FVector>> many_r_verts)
 {
 	bool r_true;
+
+	//For when one slice bisects, but the other doesn't.
+	//We can assume that each split only splits the big object into 2 at most
+	if (many_l_verts.Num() == 1) {
+		return GetArea(many_r_verts[0]) > GetArea(many_r_verts[1]) ? { 0, 0 } : { 0, 1 };
+	} else if (many_r_verts.Num() == 1) {
+		return GetArea(many_l_verts[0]) > GetArea(many_l_verts[1]) ? { 0, 0 } : { 1, 0 };
+	}
+
 	//This should be multithreaded
 	for (int i = 0; i < many_l_verts.Num(); i++) {
 		TArray<FVector> l_verts = many_l_verts[i];
