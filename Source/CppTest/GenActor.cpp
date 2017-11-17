@@ -107,13 +107,7 @@ void AGenActor::OnOverlapEnd(class UPrimitiveComponent * OverlappedComp, class A
 	FVector curr_pos = OtherActor->GetActorLocation();
 	FVector block_pos = this->GetActorLocation();
 	FVector offset = FVector(0, 0, 35);
-	bool debug = false;
 	float dist = 20;
-
-	APlayerController *player = GetWorld()->GetFirstPlayerController();
-
-	FVector control_rvec = player->GetActorRightVector();
-	FRotator control_rotation = player->GetControlRotation();
 
 	TArray<TArray<FVector>> updated_position = GetSplit_Tri(PointArray<FVector>(mesh_sect->ProcVertexBuffer, &FProcMeshVertex::Position),
 		actor_point + offset - block_pos, actor_point - offset - block_pos, curr_pos + offset - block_pos, curr_pos - offset - block_pos);
@@ -126,43 +120,24 @@ void AGenActor::OnOverlapEnd(class UPrimitiveComponent * OverlappedComp, class A
 	TArray<float> r_areas = { GetArea(updated_position[0]), GetArea(updated_position[1]) };
 	UE_LOG(LogTemp, Warning, TEXT("Right areas: %f; %f\n\n"), r_areas[0], r_areas[1]);
 	TArray<int> split_inds = GetSplitIndices(GetArea(PointArray<FVector>(mesh_sect->ProcVertexBuffer, &FProcMeshVertex::Position)), l_areas, r_areas);
+	UE_LOG(LogTemp, Warning, TEXT("Indices: %d, %d\n"), split_inds[0], split_inds[1])
 
-	if (updated_position_l.IsValidIndex(split_inds[0])) {
-		UE_LOG(LogTemp, Warning, TEXT("Updating left position"));
-		AGenActor *other_half = GetWorld()->SpawnActorDeferred<AGenActor>(AGenActor::StaticClass(), FTransform(FVector(0, 0, 0)));
-		other_half->verts = updated_position_l[split_inds[0]];
-		other_half->FinishSpawning(FTransform(block_pos + FVector(0, 0, 0)));
-	}
-
-	if (updated_position.IsValidIndex(split_inds[1])) {
-		UE_LOG(LogTemp, Warning, TEXT("Updating right position"));
-		//CreateTriangle(updated_position[split_inds[1]], FVector2D(.0625, .0625));
-		AGenActor *other_half = GetWorld()->SpawnActorDeferred<AGenActor>(AGenActor::StaticClass(), FTransform(FVector(0, 0, 0)));
-		other_half->verts = updated_position[split_inds[1]];
-		other_half->FinishSpawning(FTransform(block_pos + FVector(0, 0, 0)));
-	}
-
-	//if (updated_position_l[0].Num() != 0) {
-	//	CreateTriangle(updated_position_l[0], FVector2D(.0625, .0625));
-	//}
-	
-	if (debug) {
-		TArray<FVector> tmp = updated_position_l[0];
-		UE_LOG(LogTemp, Warning, TEXT("Position: %s; %s; %s"), *tmp[0].ToString(), *tmp[1].ToString(), *tmp[2].ToString());
-
-		UE_LOG(LogTemp, Warning, TEXT("Intersection point: %s"), *FMath::LinePlaneIntersection(tmp[0], tmp[1], tmp[2], (tmp[1] - tmp[0])).ToString());
-
-	}
-
-	/*if (updated_position_l[0] != verts) {
-		if (updated_position_l.Num() == 2) {
+	if (split_inds[0] != -1 && split_inds[1] != -1) {
+		if (updated_position_l.IsValidIndex(split_inds[0])) {
+			UE_LOG(LogTemp, Warning, TEXT("Updating left position"));
 			AGenActor *other_half = GetWorld()->SpawnActorDeferred<AGenActor>(AGenActor::StaticClass(), FTransform(FVector(0, 0, 0)));
-			other_half->verts = updated_position_l[1];
-			other_half->FinishSpawning(FTransform(block_pos + FVector(0, 0, 10)));
+			other_half->verts = updated_position_l[split_inds[0]];
+			other_half->FinishSpawning(FTransform(block_pos + FVector(0, 0, 0)));
 		}
-	}*/
-
-	this->Destroy();
+		if (updated_position.IsValidIndex(split_inds[1])) {
+			UE_LOG(LogTemp, Warning, TEXT("Updating right position"));
+			//CreateTriangle(updated_position[split_inds[1]], FVector2D(.0625, .0625));
+			AGenActor *other_half = GetWorld()->SpawnActorDeferred<AGenActor>(AGenActor::StaticClass(), FTransform(FVector(0, 0, 0)));
+			other_half->verts = updated_position[split_inds[1]];
+			other_half->FinishSpawning(FTransform(block_pos + FVector(0, 0, 0)));
+		}
+		this->Destroy();
+	}
 }
 
 void AGenActor::OnComponentHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComponent, FVector NormalImpulse, const FHitResult& Hit) {
