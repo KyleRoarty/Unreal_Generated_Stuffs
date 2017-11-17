@@ -28,7 +28,6 @@ AGenActor::AGenActor()
 	mesh->SetMaterial(0, MyMaterial);
 	mesh->OnComponentBeginOverlap.AddDynamic(this, &AGenActor::OnComponentBeginOverlap);
 	mesh->OnComponentEndOverlap.AddDynamic(this, &AGenActor::OnOverlapEnd);
-	mesh->OnComponentHit.AddDynamic(this, &AGenActor::OnComponentHit);
 	mesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
 	//mesh->bUseAsyncCooking = true;
 
@@ -83,13 +82,11 @@ inline TArray<return_type> AGenActor::PointArray(mem_type Vertices, ret_type Mem
 void AGenActor::OnComponentBeginOverlap(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
 	FProcMeshSection *mesh_sect = this->mesh->GetProcMeshSection(0);
-	UE_LOG(LogTemp, Warning, TEXT("Components overlap!"));
 	FVector actor_location, actor_bounds;
 	OtherActor->GetActorBounds(false, actor_location, actor_bounds);
 	actor_point = OtherActor->GetActorLocation();
 	actor_rvec = GetWorld()->GetFirstPlayerController()->GetActorRightVector();
 	int_point = SweepResult.Location;
-	UE_LOG(LogTemp, Warning, TEXT("Values: %.2f, %.2f, %.2f;"), actor_location.X, actor_location.Y, actor_location.Z);
 
 	TArray<FVector2D> updated_uv = GetUV(PointArray<FVector>(mesh_sect->ProcVertexBuffer, &FProcMeshVertex::Position),
 		FVector2D(.1875, .1875), FVector2D(.0625, .0625), FVector2D(50, 50));
@@ -101,9 +98,7 @@ void AGenActor::OnComponentBeginOverlap(class UPrimitiveComponent* OverlappedCom
 
 void AGenActor::OnOverlapEnd(class UPrimitiveComponent * OverlappedComp, class AActor * OtherActor, class UPrimitiveComponent * OtherComp, int32 OtherBodyIndex)
 {
-	UE_LOG(LogTemp, Warning, TEXT("Components stop overlap!"));
 	FProcMeshSection *mesh_sect = this->mesh->GetProcMeshSection(0);
-	UE_LOG(LogTemp, Warning, TEXT("Components overlap!"));
 	FVector curr_pos = OtherActor->GetActorLocation();
 	FVector block_pos = this->GetActorLocation();
 	FVector offset = FVector(0, 0, 35);
@@ -116,22 +111,16 @@ void AGenActor::OnOverlapEnd(class UPrimitiveComponent * OverlappedComp, class A
 		actor_point + offset + dist*-actor_rvec - block_pos, actor_point - offset + dist*-actor_rvec - block_pos, curr_pos + offset + dist*-actor_rvec - block_pos, curr_pos - offset + dist*-actor_rvec - block_pos);
 
 	TArray<float> l_areas = { GetArea(updated_position_l[0]), GetArea(updated_position_l[1]) };
-	UE_LOG(LogTemp, Warning, TEXT("Left areas: %f; %f"), l_areas[0], l_areas[1]);
 	TArray<float> r_areas = { GetArea(updated_position[0]), GetArea(updated_position[1]) };
-	UE_LOG(LogTemp, Warning, TEXT("Right areas: %f; %f\n\n"), r_areas[0], r_areas[1]);
 	TArray<int> split_inds = GetSplitIndices(GetArea(PointArray<FVector>(mesh_sect->ProcVertexBuffer, &FProcMeshVertex::Position)), l_areas, r_areas);
-	UE_LOG(LogTemp, Warning, TEXT("Indices: %d, %d\n"), split_inds[0], split_inds[1])
 
 	if (split_inds[0] != -1 && split_inds[1] != -1) {
 		if (updated_position_l.IsValidIndex(split_inds[0])) {
-			UE_LOG(LogTemp, Warning, TEXT("Updating left position"));
 			AGenActor *other_half = GetWorld()->SpawnActorDeferred<AGenActor>(AGenActor::StaticClass(), FTransform(FVector(0, 0, 0)));
 			other_half->verts = updated_position_l[split_inds[0]];
 			other_half->FinishSpawning(FTransform(block_pos + FVector(0, 0, 0)));
 		}
 		if (updated_position.IsValidIndex(split_inds[1])) {
-			UE_LOG(LogTemp, Warning, TEXT("Updating right position"));
-			//CreateTriangle(updated_position[split_inds[1]], FVector2D(.0625, .0625));
 			AGenActor *other_half = GetWorld()->SpawnActorDeferred<AGenActor>(AGenActor::StaticClass(), FTransform(FVector(0, 0, 0)));
 			other_half->verts = updated_position[split_inds[1]];
 			other_half->FinishSpawning(FTransform(block_pos + FVector(0, 0, 0)));
@@ -139,11 +128,6 @@ void AGenActor::OnOverlapEnd(class UPrimitiveComponent * OverlappedComp, class A
 		this->Destroy();
 	}
 }
-
-void AGenActor::OnComponentHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComponent, FVector NormalImpulse, const FHitResult& Hit) {
-	UE_LOG(LogTemp, Warning, TEXT("Components hit!"));
-}
-
 TArray<TArray<FVector>> AGenActor::GetSplit_Tri(TArray<FVector> positions, FVector a, FVector b, FVector c, FVector d)
 {
 	TArray<FVector> split_one, split_two;
@@ -237,7 +221,6 @@ float AGenActor::GetArea(TArray<FVector> points)
 {
 	TArray<int32> tris = GetTriangles(points.Num());
 	float area = 0;
-	UE_LOG(LogTemp, Warning, TEXT("Num Tris: %d"), tris.Num());
 	if (tris.Num() % 3 != 0) {
 		return -1;
 	}
@@ -275,7 +258,5 @@ TArray<int> AGenActor::GetSplitIndices(float ref, TArray<float> l_half, TArray<f
 			}
 		}
 	}
-
-
 	return ind;
 }
